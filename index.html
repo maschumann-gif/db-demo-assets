@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ersatzteil-Bestandssimulator | DB Fernverkehr</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --blue: #4F6EF5;
+    --blue-light: #EEF2FF;
+    --green: #10B981;
+    --green-light: #D1FAE5;
+    --orange: #F97316;
+    --orange-light: #FEF3C7;
+    --teal: #0D9488;
+    --teal-light: #CCFBF1;
+    --red: #EF4444;
+    --red-light: #FEE2E2;
+    --indigo: #6366F1;
+    --text: #111827;
+    --muted: #6B7280;
+    --muted2: #9CA3AF;
+    --border: #E5E7EB;
+    --bg: #F9FAFB;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* App frame */
+  .app-header {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-title { font-size: 17px; font-weight: 600; color: var(--text); }
+  .app-header-right { display: flex; align-items: center; gap: 10px; }
+  .header-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: inherit; border: 1px solid var(--border);
+    background: white; color: var(--text);
+  }
+  .header-btn.primary { background: var(--blue); color: white; border-color: var(--blue); }
+  .header-btn svg { width: 14px; height: 14px; }
+
+  /* Filter bar */
+  .filter-bar {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .filter-label { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .filter-label svg { width: 14px; height: 14px; color: var(--blue); }
+  .filter-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+  .filter-select {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; font-weight: 500; color: var(--text);
+    background: white; cursor: pointer; min-width: 120px;
+  }
+  .filter-select.active { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+  .filter-select .chev { margin-left: auto; color: var(--muted2); }
+
+  /* Content */
+  .content { padding: 20px 24px; }
+
+  /* Scope row */
+  .scope-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .scope-count { font-size: 22px; font-weight: 600; color: var(--text); }
+  .scope-label { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .deviation-select {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 13px; font-weight: 500; cursor: pointer; background: white;
+  }
+  .deviation-label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .deviation-icon { color: var(--blue); }
+
+  /* Table card */
+  .table-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .table-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .table-card-title { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .table-card-title .info { color: var(--muted2); cursor: help; font-weight: 400; font-size: 12px; }
+  .export-btn { color: var(--muted2); cursor: pointer; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted);
+    text-align: left; padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    background: #FAFAFA; white-space: nowrap;
+  }
+  thead th:not(:first-child):not(:nth-child(2)):not(:nth-child(3)) { text-align: right; }
+  tbody tr { cursor: pointer; transition: background 0.1s; }
+  tbody tr:hover { background: #F5F7FF; }
+  tbody tr.selected { background: var(--blue-light); }
+  tbody td {
+    font-size: 13px; padding: 11px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td:not(:first-child):not(:nth-child(2)):not(:nth-child(3)) { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Prio cell */
+  .prio-cell { display: flex; align-items: center; gap: 4px; }
+  .prio-icon { color: var(--orange); font-size: 13px; font-weight: 700; }
+  .prio-num { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .bell { color: var(--muted2); font-size: 12px; }
+  .bell-count { font-size: 10px; color: var(--blue); font-weight: 600; margin-left: 1px; }
+
+  /* Material cell */
+  .mat-name { color: var(--blue); font-weight: 500; font-size: 13px; text-decoration: none; }
+  .mat-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  /* Badge */
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 4px; white-space: nowrap;
+  }
+  .badge-under { background: #FEF3C7; color: #92400E; }
+  .badge-excess { background: var(--teal-light); color: var(--teal); }
+  .badge-ok { background: var(--green-light); color: #065F46; }
+  .badge-abc { background: #EDE9FE; color: #5B21B6; font-size: 10px; padding: 2px 7px; border-radius: 3px; }
+  .badge-cx { background: var(--teal-light); color: var(--teal); font-size: 10px; padding: 2px 7px; border-radius: 3px; }
+
+  /* Delta */
+  .delta-pos { color: var(--green); font-size: 11px; margin-left: 4px; }
+  .delta-neg { color: var(--red); font-size: 11px; margin-left: 4px; }
+  .rec-value { font-weight: 600; color: var(--text); }
+  .pot-value { color: var(--blue); font-weight: 600; }
+
+  /* ===================== OVERLAY ===================== */
+  .overlay-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(17, 24, 39, 0.35);
+    z-index: 50;
+  }
+  .overlay-backdrop.open { display: block; }
+
+  .overlay-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 840px;
+    background: white;
+    box-shadow: -8px 0 40px rgba(0,0,0,0.12);
+    display: flex; flex-direction: column;
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+  }
+  .overlay-panel.open { transform: translateX(0); }
+
+  .overlay-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .overlay-title { font-size: 16px; font-weight: 600; color: var(--text); }
+  .overlay-header-right { display: flex; align-items: center; gap: 10px; }
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
+    background: white; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--muted);
+  }
+  .icon-btn:hover { background: var(--bg); }
+  .icon-btn svg { width: 14px; height: 14px; }
+  .close-btn {
+    width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
+    background: white; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--muted); font-size: 18px; line-height: 1;
+  }
+  .close-btn:hover { background: var(--bg); }
+
+  /* KPI strip */
+  .kpi-strip {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .kpi-strip-item {
+    flex: 1; padding: 14px 18px;
+    border-right: 1px solid var(--border);
+  }
+  .kpi-strip-item:last-child { border-right: none; }
+  .kpi-strip-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
+  .kpi-strip-value { font-size: 20px; font-weight: 600; color: var(--text); }
+  .kpi-strip-badge {
+    display: inline-block; font-size: 12px; font-weight: 700;
+    padding: 3px 10px; border-radius: 4px; margin-top: 4px;
+  }
+
+  /* Overlay body */
+  .overlay-body { flex: 1; overflow-y: auto; display: flex; gap: 0; }
+
+  .overlay-main { flex: 1; padding: 0; overflow-y: auto; }
+  .overlay-sidebar {
+    width: 210px; border-left: 1px solid var(--border); padding: 16px;
+    flex-shrink: 0; background: #FAFAFA;
+  }
+  .sidebar-field { margin-bottom: 14px; }
+  .sidebar-field-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .sidebar-field-value { font-size: 13px; font-weight: 500; color: var(--text); }
+
+  /* Tabs */
+  .overlay-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    padding: 0 20px; background: white;
+    flex-shrink: 0;
+  }
+  .overlay-tab {
+    padding: 11px 16px; font-size: 13px; font-weight: 500;
+    color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .overlay-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .overlay-tab-pane { display: none; padding: 20px; }
+  .overlay-tab-pane.active { display: block; }
+
+  /* Chart area */
+  .chart-area { background: white; border-radius: 8px; }
+  .chart-kpis { display: flex; gap: 32px; margin-bottom: 16px; padding: 0 4px; }
+  .chart-kpi-label { font-size: 12px; color: var(--muted); margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
+  .chart-kpi-value { font-size: 22px; font-weight: 600; color: var(--text); }
+
+  /* Scenario toggle */
+  .scenario-toggle {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 14px;
+  }
+  .scenario-toggle-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .seg-btn {
+    padding: 5px 14px; border-radius: 5px; font-size: 12px; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border); background: white;
+    color: var(--muted); font-family: inherit;
+    transition: all 0.15s;
+  }
+  .seg-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+  /* Legend */
+  .chart-legend { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .leg-bar { width: 12px; height: 10px; border-radius: 2px; }
+  .leg-line { width: 18px; height: 2px; border-radius: 1px; }
+  .leg-dash { width: 18px; height: 0; border-top: 2px dashed; }
+
+  /* Method comparison table in tab 1 */
+  .method-section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; margin-top: 20px; }
+  .method-tbl { width: 100%; border-collapse: collapse; }
+  .method-tbl th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); background: #FAFAFA; }
+  .method-tbl th:not(:first-child) { text-align: right; }
+  .method-tbl td { font-size: 13px; padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .method-tbl td:not(:first-child) { text-align: right; }
+  .method-tbl tr:last-child td { border-bottom: none; }
+  .method-tbl tr.rec-row td { background: #F0FDF4; }
+  .rec-check { color: var(--green); font-weight: 700; }
+
+  /* Action bar */
+  .overlay-action-bar {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: white; flex-shrink: 0;
+  }
+  .action-note { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .action-btns { display: flex; gap: 8px; }
+  .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; border: 1px solid var(--border); background: white; color: var(--text); }
+  .btn.primary { background: var(--blue); color: white; border-color: var(--blue); }
+  .btn.disabled { background: #F3F4F6; color: var(--muted2); cursor: not-allowed; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- App Header -->
+<div class="app-header">
+  <div class="app-title">Ersatzteil-Bestandssimulator</div>
+  <div class="app-header-right">
+    <button class="header-btn">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+      Teilen
+    </button>
+    <button class="header-btn">Feedback</button>
+    <button class="header-btn primary">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      Edit Mode
+    </button>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <div class="filter-label">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+    Materialien filtern
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-select active">
+    DB Fernverkehr
+    <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="filter-select">
+    Werk / Standort
+    <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="filter-select">
+    Materialgruppe
+    <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="filter-select">
+    MRP-Typ
+    <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="filter-select">
+    Beschaffungsart
+    <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="filter-select">
+    ABC/XYZ Klasse
+    <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="content">
+  <div class="scope-row">
+    <div>
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <span class="scope-count">247</span>
+        <span style="font-size:13px;color:var(--muted);">Materialien ausgewählt</span>
+      </div>
+    </div>
+    <div style="margin-left:16px;display:flex;align-items:center;gap:6px;">
+      <svg width="15" height="15" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span style="font-size:13px;font-weight:600;color:var(--text);">Abweichung auswählen</span>
+    </div>
+    <div style="margin-left:4px;display:flex;gap:8px;">
+      <div class="filter-select active" style="min-width:0;">Sicherheitsbestand <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+      <div class="filter-select" style="min-width:0;">Wiederbeschaffungszeit <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+      <div class="filter-select" style="min-width:0;">Meldebestand <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="table-card-title">
+        Material-Werk auswählen
+        <span class="info">ⓘ</span>
+      </div>
+      <div class="export-btn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:70px;">Prio</th>
+          <th>Material Nr. &amp; Name</th>
+          <th>Werk</th>
+          <th>ABC/XYZ</th>
+          <th>Bestandsklasse</th>
+          <th>SL (SAP)</th>
+          <th>SL (Opt.)</th>
+          <th>Sicherheitsbestand</th>
+          <th>Empf. Sicherheitsbestand</th>
+          <th>Optimierungspotenzial</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr onclick="openOverlay(0)" id="row-0">
+          <td>
+            <div class="prio-cell">
+              <span class="prio-icon">⬆⬆</span>
+              <span class="prio-num">4</span>
+              <span class="bell">🔔</span><span class="bell-count">2</span>
+            </div>
+          </td>
+          <td>
+            <div><a class="mat-name">Bogenlager ICE BR 407</a></div>
+            <div class="mat-sub">10-123456-00</div>
+          </td>
+          <td><div style="font-size:13px;">Berlin HBF</div><div class="mat-sub">WK-1001</div></td>
+          <td><span class="badge badge-cx">CX</span></td>
+          <td><span class="badge badge-under">Unterbestand</span></td>
+          <td>85%</td>
+          <td style="color:var(--green);font-weight:600;">95%</td>
+          <td>3 Stk.</td>
+          <td><span class="rec-value">8 Stk.</span> <span class="delta-pos">+5</span></td>
+          <td><span class="pot-value">€ 12.400</span></td>
+        </tr>
+        <tr onclick="openOverlay(1)" id="row-1">
+          <td>
+            <div class="prio-cell">
+              <span class="prio-icon">⬆⬆</span>
+              <span class="prio-num">4</span>
+              <span class="bell">🔔</span><span class="bell-count">3</span>
+            </div>
+          </td>
+          <td>
+            <div><a class="mat-name">Radsatzlager BR 407</a></div>
+            <div class="mat-sub">10-234567-00</div>
+          </td>
+          <td><div style="font-size:13px;">Hamburg-Langenfelde</div><div class="mat-sub">WK-1004</div></td>
+          <td><span class="badge badge-cx">CX</span></td>
+          <td><span class="badge badge-under">Unterbestand</span></td>
+          <td>78%</td>
+          <td style="color:var(--green);font-weight:600;">92%</td>
+          <td>1 Stk.</td>
+          <td><span class="rec-value">5 Stk.</span> <span class="delta-pos">+4</span></td>
+          <td><span class="pot-value">€ 19.200</span></td>
+        </tr>
+        <tr onclick="openOverlay(2)" id="row-2">
+          <td>
+            <div class="prio-cell">
+              <span class="prio-icon" style="color:var(--muted2);">⬆</span>
+              <span class="prio-num">3</span>
+              <span class="bell">🔔</span><span class="bell-count">1</span>
+            </div>
+          </td>
+          <td>
+            <div><a class="mat-name">Stromabnehmer BR 406</a></div>
+            <div class="mat-sub">10-345678-00</div>
+          </td>
+          <td><div style="font-size:13px;">München HBF</div><div class="mat-sub">WK-1007</div></td>
+          <td><span class="badge badge-abc">AZ</span></td>
+          <td><span class="badge badge-under">Unterbestand</span></td>
+          <td>88%</td>
+          <td style="color:var(--green);font-weight:600;">94%</td>
+          <td>2 Stk.</td>
+          <td><span class="rec-value">6 Stk.</span> <span class="delta-pos">+4</span></td>
+          <td><span class="pot-value">€ 14.800</span></td>
+        </tr>
+        <tr onclick="openOverlay(3)" id="row-3">
+          <td>
+            <div class="prio-cell">
+              <span class="prio-icon" style="color:var(--muted2);">⬆</span>
+              <span class="prio-num">3</span>
+              <span class="bell">🔔</span><span class="bell-count">1</span>
+            </div>
+          </td>
+          <td>
+            <div><a class="mat-name">Bremsbelag BR 403</a></div>
+            <div class="mat-sub">10-456789-00</div>
+          </td>
+          <td><div style="font-size:13px;">Frankfurt-Griesheim</div><div class="mat-sub">WK-1002</div></td>
+          <td><span class="badge badge-cx">CX</span></td>
+          <td><span class="badge badge-excess">Überbestand</span></td>
+          <td>99%</td>
+          <td style="color:var(--teal);font-weight:600;">97%</td>
+          <td>22 Stk.</td>
+          <td><span class="rec-value">12 Stk.</span> <span class="delta-neg">−10</span></td>
+          <td><span class="pot-value">€ 8.900</span></td>
+        </tr>
+        <tr onclick="openOverlay(4)" id="row-4">
+          <td>
+            <div class="prio-cell">
+              <span class="prio-icon" style="color:var(--muted2);">⬆</span>
+              <span class="prio-num">3</span>
+              <span class="bell">🔔</span><span class="bell-count">1</span>
+            </div>
+          </td>
+          <td>
+            <div><a class="mat-name">Hydraulikschlauch BR 403</a></div>
+            <div class="mat-sub">10-567890-00</div>
+          </td>
+          <td><div style="font-size:13px;">Berlin HBF</div><div class="mat-sub">WK-1001</div></td>
+          <td><span class="badge badge-cx">CX</span></td>
+          <td><span class="badge badge-excess">Überbestand</span></td>
+          <td>99%</td>
+          <td style="color:var(--teal);font-weight:600;">97%</td>
+          <td>15 Stk.</td>
+          <td><span class="rec-value">8 Stk.</span> <span class="delta-neg">−7</span></td>
+          <td><span class="pot-value">€ 6.100</span></td>
+        </tr>
+        <tr onclick="openOverlay(5)" id="row-5">
+          <td>
+            <div class="prio-cell">
+              <span class="prio-icon" style="color:var(--muted2);">—</span>
+              <span class="prio-num">2</span>
+              <span class="bell">🔔</span><span class="bell-count">0</span>
+            </div>
+          </td>
+          <td>
+            <div><a class="mat-name">Getriebeöl BR 407 (5L)</a></div>
+            <div class="mat-sub">10-678901-00</div>
+          </td>
+          <td><div style="font-size:13px;">Köln Betriebswerk</div><div class="mat-sub">WK-1005</div></td>
+          <td><span class="badge badge-abc">AZ</span></td>
+          <td><span class="badge badge-ok">Optimal</span></td>
+          <td>95%</td>
+          <td style="color:var(--green);font-weight:600;">95%</td>
+          <td>8 Stk.</td>
+          <td><span class="rec-value">8 Stk.</span> <span style="font-size:11px;color:var(--muted2);">—</span></td>
+          <td><span style="color:var(--muted2);">€ 0</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Overlay backdrop -->
+<div class="overlay-backdrop" id="backdrop" onclick="closeOverlay()"></div>
+
+<!-- Overlay panel -->
+<div class="overlay-panel" id="overlay">
+  <div class="overlay-header">
+    <div class="overlay-title">Material Detail</div>
+    <div class="overlay-header-right">
+      <div class="icon-btn"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg></div>
+      <div class="icon-btn"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div class="close-btn" onclick="closeOverlay()">×</div>
+    </div>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="kpi-strip">
+    <div class="kpi-strip-item">
+      <div class="kpi-strip-label">Material Nr.</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);" id="ov-matno">10-123456-00</div>
+    </div>
+    <div class="kpi-strip-item">
+      <div class="kpi-strip-label">Aktueller Bestand (Wert)</div>
+      <div class="kpi-strip-value" id="ov-stock">€ 9.600</div>
+    </div>
+    <div class="kpi-strip-item">
+      <div class="kpi-strip-label">Empf. Sicherheitsbestand</div>
+      <div class="kpi-strip-value" id="ov-rec">8 Stk.</div>
+    </div>
+    <div class="kpi-strip-item">
+      <div class="kpi-strip-label">Bestandsklasse</div>
+      <div style="margin-top:4px;" id="ov-class"><span class="badge badge-under">Unterbestand</span></div>
+    </div>
+    <div class="kpi-strip-item">
+      <div class="kpi-strip-label">Optimierungspotenzial</div>
+      <div><span class="kpi-strip-badge" style="background:var(--blue-light);color:var(--blue);" id="ov-pot">€ 12.400</span></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="overlay-tabs">
+    <div class="overlay-tab active" onclick="switchOvTab(1)">Prognose-Vergleich</div>
+    <div class="overlay-tab" onclick="switchOvTab(2)">Bestandsprojektion</div>
+  </div>
+
+  <!-- Body -->
+  <div class="overlay-body">
+    <div class="overlay-main">
+
+      <!-- Tab 1: Forecast comparison -->
+      <div class="overlay-tab-pane active" id="ov-tab1">
+        <div class="chart-kpis">
+          <div>
+            <div class="chart-kpi-label">Bedarfsfrequenz <span style="cursor:help;color:var(--muted2);">ⓘ</span></div>
+            <div class="chart-kpi-value" id="ov-freq">0,4 / Monat</div>
+          </div>
+          <div>
+            <div class="chart-kpi-label">Datenbasis</div>
+            <div class="chart-kpi-value">36 Monate</div>
+          </div>
+        </div>
+
+        <!-- Demand history chart -->
+        <svg id="forecast-chart" viewBox="0 0 580 175" style="width:100%;height:175px;display:block;" xmlns="http://www.w3.org/2000/svg">
+          <rect width="580" height="175" fill="white"/>
+          <!-- Forecast zone -->
+          <rect x="400" y="0" width="180" height="175" fill="#F8FAFC" opacity="0.9"/>
+          <line x1="400" y1="0" x2="400" y2="165" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="404" y="12" font-size="8" fill="#94A3B8" font-family="Inter,sans-serif" font-weight="600" letter-spacing="0.08em">PROGNOSE →</text>
+          <!-- Grid -->
+          <line x1="20" y1="30" x2="575" y2="30" stroke="#F3F4F6" stroke-width="1"/>
+          <line x1="20" y1="70" x2="575" y2="70" stroke="#F3F4F6" stroke-width="1"/>
+          <line x1="20" y1="110" x2="575" y2="110" stroke="#F3F4F6" stroke-width="1"/>
+          <line x1="20" y1="150" x2="575" y2="150" stroke="#E5E7EB" stroke-width="1"/>
+          <!-- Y labels -->
+          <text x="4" y="33" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">6</text>
+          <text x="4" y="73" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">4</text>
+          <text x="4" y="113" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">2</text>
+          <text x="4" y="153" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">0</text>
+          <!-- X labels -->
+          <text x="35" y="170" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Jan 23</text>
+          <text x="145" y="170" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Jan 24</text>
+          <text x="255" y="170" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Jan 25</text>
+          <text x="365" y="170" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Jan 26</text>
+          <text x="400" y="170" font-size="7.5" fill="#64748B" font-family="Inter,sans-serif" text-anchor="middle" font-weight="600">Heute</text>
+          <text x="490" y="170" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Jul 26</text>
+          <!-- Demand bars (zero = thin 3px) -->
+          <g fill="#CBD5E1" opacity="0.6">
+            <rect x="27" y="147" width="14" height="3" rx="1"/>
+            <rect x="44" y="147" width="14" height="3" rx="1"/>
+            <rect x="78" y="147" width="14" height="3" rx="1"/>
+            <rect x="95" y="147" width="14" height="3" rx="1"/>
+            <rect x="112" y="147" width="14" height="3" rx="1"/>
+            <rect x="146" y="147" width="14" height="3" rx="1"/>
+            <rect x="163" y="147" width="14" height="3" rx="1"/>
+            <rect x="197" y="147" width="14" height="3" rx="1"/>
+            <rect x="214" y="147" width="14" height="3" rx="1"/>
+            <rect x="231" y="147" width="14" height="3" rx="1"/>
+            <rect x="265" y="147" width="14" height="3" rx="1"/>
+            <rect x="299" y="147" width="14" height="3" rx="1"/>
+            <rect x="316" y="147" width="14" height="3" rx="1"/>
+            <rect x="350" y="147" width="14" height="3" rx="1"/>
+            <rect x="367" y="147" width="14" height="3" rx="1"/>
+            <rect x="384" y="147" width="14" height="3" rx="1"/>
+          </g>
+          <!-- Demand bars with height -->
+          <g fill="#94A3B8">
+            <rect x="61" y="110" width="14" height="40" rx="2"/>  <!-- 2 Stk -->
+            <rect x="129" y="70" width="14" height="80" rx="2"/>  <!-- 4 Stk -->
+            <rect x="180" y="110" width="14" height="40" rx="2"/> <!-- 2 Stk -->
+            <rect x="248" y="110" width="14" height="40" rx="2"/> <!-- 2 Stk -->
+            <rect x="282" y="30" width="14" height="120" rx="2"/> <!-- 6 Stk -->
+            <rect x="333" y="110" width="14" height="40" rx="2"/> <!-- 2 Stk -->
+          </g>
+          <!-- Gleitender Durchschnitt (dashed gray) -->
+          <polyline points="27,142 44,141 61,135 78,137 95,139 112,140 129,128 146,131 163,133 180,130 197,132 214,133 231,134 248,131 265,133 282,120 299,125 316,127 333,124 350,126 367,127 384,128 400,128" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <polyline points="400,128 420,127 440,128 460,127 480,128 500,127 520,128 540,127 560,128" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.5"/>
+          <!-- Croston (orange) -->
+          <polyline points="27,144 44,143 61,133 78,136 95,138 112,139 129,122 146,127 163,129 180,125 197,128 214,130 231,131 248,127 265,130 282,112 299,118 316,121 333,117 350,120 367,122 384,123 400,123" fill="none" stroke="#F97316" stroke-width="2"/>
+          <polyline points="400,123 420,121 440,123 460,120 480,122 500,119 520,121 540,118 560,120" fill="none" stroke="#F97316" stroke-width="2.5"/>
+          <!-- Predictive ML (blue) with confidence band -->
+          <polygon points="400,121 420,118 440,121 460,116 480,119 500,115 520,118 540,114 560,116 560,134 540,130 520,134 500,131 480,135 460,132 440,137 420,134 400,137" fill="#4F6EF5" opacity="0.07"/>
+          <polyline points="27,145 44,144 61,131 78,135 95,137 112,138 129,119 146,125 163,127 180,122 197,126 214,128 231,129 248,124 265,128 282,108 299,115 316,119 333,114 350,118 367,120 384,121 400,121" fill="none" stroke="#4F6EF5" stroke-width="2"/>
+          <polyline points="400,121 420,118 440,121 460,116 480,119 500,115 520,118 540,114 560,116" fill="none" stroke="#4F6EF5" stroke-width="2.5"/>
+        </svg>
+
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-bar" style="background:#CBD5E1;height:8px;width:10px;border-radius:1px;"></div> Verbrauch (Ist)</div>
+          <div class="leg-item"><div class="leg-dash" style="border-color:#94A3B8;width:16px;"></div> Gleitender Ø</div>
+          <div class="leg-item"><div class="leg-line" style="background:#F97316;"></div> Croston/TSB</div>
+          <div class="leg-item"><div class="leg-line" style="background:#4F6EF5;"></div> Predictive ML</div>
+        </div>
+
+        <div class="method-section-title">Modell-Vergleich</div>
+        <table class="method-tbl">
+          <thead>
+            <tr>
+              <th>Methode</th>
+              <th>MAPE</th>
+              <th>Bias</th>
+              <th>Eignung</th>
+              <th>Empfehlung</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div style="font-weight:500;">Gleitender Durchschnitt</div><div style="font-size:11px;color:var(--muted);">Keine Verteilungsannahme</div></td>
+              <td>68,3%</td>
+              <td style="color:var(--red);">+22%</td>
+              <td><span class="badge" style="background:#F3F4F6;color:var(--muted);font-size:10px;">Reguläre Nachfrage</span></td>
+              <td style="color:var(--muted2);">—</td>
+            </tr>
+            <tr class="rec-row">
+              <td><div style="font-weight:500;">Croston / TSB</div><div style="font-size:11px;color:var(--muted);">Trennt Ereigniswahrsch. und Größe</div></td>
+              <td style="color:var(--green);font-weight:600;">31,4%</td>
+              <td style="color:var(--green);">+3%</td>
+              <td><span class="badge badge-ok" style="font-size:10px;">Slow Mover</span></td>
+              <td><span class="rec-check">✓</span> <span style="font-size:12px;color:var(--green);font-weight:600;">Empfohlen</span></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:500;">Predictive ML</div><div style="font-size:11px;color:var(--muted);">Treiber: Instandhaltungsplan, Laufleistung</div></td>
+              <td>28,9%</td>
+              <td style="color:var(--green);">+1%</td>
+              <td><span class="badge" style="background:#FEF3C7;color:#92400E;font-size:10px;">Erfordert Treiberdaten</span></td>
+              <td style="font-size:12px;color:var(--muted);">Wenn Treiber verfügbar</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tab 2: Inventory projection -->
+      <div class="overlay-tab-pane" id="ov-tab2">
+        <!-- Consumption logic note -->
+        <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#3730A3;">
+          <strong>Forecast Consumption:</strong> Bestätigte Wartungsaufträge (WOs) konsumieren die Prognose. Gesamtbedarf = max(Prognose, WOs) — keine Doppelzählung.
+        </div>
+
+        <div class="scenario-toggle">
+          <span class="scenario-toggle-label">Ansicht:</span>
+          <button class="seg-btn active" onclick="setScenario('geplant',this)">Geplant (nur SAP-WOs)</button>
+          <button class="seg-btn" onclick="setScenario('kombiniert',this)">Kombiniert (Plan + Forecast)</button>
+        </div>
+
+        <div class="chart-kpis">
+          <div>
+            <div class="chart-kpi-label">Tage bis Fehlmenge <span style="cursor:help;color:var(--muted2);">ⓘ</span></div>
+            <div class="chart-kpi-value" id="ov-days">47 Tage</div>
+          </div>
+          <div>
+            <div class="chart-kpi-label">Bestand (Menge)</div>
+            <div class="chart-kpi-value" id="ov-qty">3 Stk.</div>
+          </div>
+          <div id="consumption-kpi" style="display:none;">
+            <div class="chart-kpi-label">Nettoprognose (nach Consumption)</div>
+            <div class="chart-kpi-value" style="color:var(--orange);">+2,1 Stk. / Monat</div>
+          </div>
+        </div>
+
+        <!-- Inventory projection chart -->
+        <svg id="proj-chart" viewBox="0 0 560 210" style="width:100%;height:210px;display:block;" xmlns="http://www.w3.org/2000/svg">
+          <rect width="560" height="210" fill="white"/>
+          <!-- Grid -->
+          <line x1="35" y1="20" x2="555" y2="20" stroke="#F3F4F6" stroke-width="1"/>
+          <line x1="35" y1="60" x2="555" y2="60" stroke="#F3F4F6" stroke-width="1"/>
+          <line x1="35" y1="100" x2="555" y2="100" stroke="#F3F4F6" stroke-width="1"/>
+          <line x1="35" y1="140" x2="555" y2="140" stroke="#F3F4F6" stroke-width="1"/>
+          <line x1="35" y1="170" x2="555" y2="170" stroke="#E5E7EB" stroke-width="1"/>
+          <!-- Y labels -->
+          <text x="4" y="23" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">16</text>
+          <text x="4" y="63" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">12</text>
+          <text x="4" y="103" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">8</text>
+          <text x="4" y="143" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">4</text>
+          <text x="4" y="173" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">0</text>
+          <!-- X labels -->
+          <text x="60" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Jul 26</text>
+          <text x="170" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Aug 26</text>
+          <text x="280" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Sep 26</text>
+          <text x="390" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Okt 26</text>
+          <text x="500" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Nov 26</text>
+
+          <!-- === GEPLANT: only firm WOs (blue bars) + consumption (red) === -->
+          <!-- Firm WO bars (blue) -->
+          <g id="wo-bars">
+            <rect x="55" y="100" width="16" height="70" rx="2" fill="#6366F1" opacity="0.8"/>
+            <rect x="275" y="120" width="16" height="50" rx="2" fill="#6366F1" opacity="0.8"/>
+            <rect x="385" y="110" width="16" height="60" rx="2" fill="#6366F1" opacity="0.8"/>
+          </g>
+          <!-- Firm WO labels -->
+          <g id="wo-labels">
+            <text x="63" y="97" font-size="7" fill="#6366F1" font-family="Inter,sans-serif" text-anchor="middle">WO</text>
+            <text x="283" y="117" font-size="7" fill="#6366F1" font-family="Inter,sans-serif" text-anchor="middle">WO</text>
+            <text x="393" y="107" font-size="7" fill="#6366F1" font-family="Inter,sans-serif" text-anchor="middle">WO</text>
+          </g>
+          <!-- Consumption bars (red) — same in both scenarios -->
+          <g fill="#EF4444" opacity="0.65">
+            <rect x="100" y="155" width="14" height="15" rx="2"/>
+            <rect x="155" y="158" width="14" height="12" rx="2"/>
+            <rect x="210" y="162" width="14" height="8" rx="2"/>
+            <rect x="320" y="157" width="14" height="13" rx="2"/>
+            <rect x="430" y="160" width="14" height="10" rx="2"/>
+            <rect x="475" y="163" width="14" height="7" rx="2"/>
+          </g>
+
+          <!-- Net forecast bars (orange) — only in Kombiniert, hidden by default -->
+          <g id="net-forecast-bars" display="none">
+            <rect x="75" y="142" width="14" height="28" rx="2" fill="#F97316" opacity="0.75"/>
+            <rect x="130" y="148" width="14" height="22" rx="2" fill="#F97316" opacity="0.75"/>
+            <rect x="185" y="152" width="14" height="18" rx="2" fill="#F97316" opacity="0.75"/>
+            <rect x="240" y="150" width="14" height="20" rx="2" fill="#F97316" opacity="0.75"/>
+            <rect x="295" y="146" width="14" height="24" rx="2" fill="#F97316" opacity="0.75"/>
+            <rect x="345" y="148" width="14" height="22" rx="2" fill="#F97316" opacity="0.75"/>
+            <rect x="405" y="150" width="14" height="20" rx="2" fill="#F97316" opacity="0.75"/>
+            <rect x="450" y="152" width="14" height="18" rx="2" fill="#F97316" opacity="0.75"/>
+            <rect x="510" y="148" width="14" height="22" rx="2" fill="#F97316" opacity="0.75"/>
+          </g>
+          <!-- Net forecast labels -->
+          <g id="net-forecast-labels" display="none">
+            <text x="82" y="139" font-size="6.5" fill="#EA580C" font-family="Inter,sans-serif" text-anchor="middle">NF</text>
+            <text x="137" y="145" font-size="6.5" fill="#EA580C" font-family="Inter,sans-serif" text-anchor="middle">NF</text>
+            <text x="192" y="149" font-size="6.5" fill="#EA580C" font-family="Inter,sans-serif" text-anchor="middle">NF</text>
+            <text x="247" y="147" font-size="6.5" fill="#EA580C" font-family="Inter,sans-serif" text-anchor="middle">NF</text>
+            <text x="352" y="145" font-size="6.5" fill="#EA580C" font-family="Inter,sans-serif" text-anchor="middle">NF</text>
+            <text x="457" y="149" font-size="6.5" fill="#EA580C" font-family="Inter,sans-serif" text-anchor="middle">NF</text>
+            <text x="517" y="145" font-size="6.5" fill="#EA580C" font-family="Inter,sans-serif" text-anchor="middle">NF</text>
+          </g>
+
+          <!-- GEPLANT projection line: drifts down to stockout -->
+          <polyline id="inv-line-aktuell" points="45,150 75,130 110,148 165,158 215,163 250,161 285,148 310,148 340,158 360,158 395,145 420,145 450,150 480,155 510,158 540,160 555,170" fill="none" stroke="#10B981" stroke-width="2" stroke-linejoin="round"/>
+          <g id="inv-dots-aktuell">
+            <circle cx="45" cy="150" r="3" fill="#10B981"/>
+            <circle cx="110" cy="148" r="3" fill="#10B981"/>
+            <circle cx="215" cy="163" r="3" fill="#10B981"/>
+            <circle cx="285" cy="148" r="3" fill="#10B981"/>
+            <circle cx="395" cy="145" r="3" fill="#10B981"/>
+            <circle cx="450" cy="150" r="3" fill="#10B981"/>
+            <circle cx="555" cy="170" r="3" fill="#EF4444"/>
+          </g>
+
+          <!-- KOMBINIERT projection line: stays healthy above safety stock -->
+          <polyline id="inv-line-opt" points="45,130 75,110 110,122 165,130 215,132 250,128 285,115 310,115 340,122 360,120 395,108 420,108 450,112 480,114 510,112 540,110 555,110" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linejoin="round" display="none"/>
+          <g id="inv-dots-opt" display="none">
+            <circle cx="45" cy="130" r="3" fill="#10B981"/>
+            <circle cx="110" cy="122" r="3" fill="#10B981"/>
+            <circle cx="215" cy="132" r="3" fill="#10B981"/>
+            <circle cx="285" cy="115" r="3" fill="#10B981"/>
+            <circle cx="395" cy="108" r="3" fill="#10B981"/>
+            <circle cx="450" cy="112" r="3" fill="#10B981"/>
+            <circle cx="555" cy="110" r="3" fill="#10B981"/>
+          </g>
+
+          <!-- Safety stock line -->
+          <line id="safety-line" x1="35" y1="163" x2="555" y2="163" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <text id="safety-label" x="38" y="160" font-size="7.5" fill="#EF4444" font-family="Inter,sans-serif">Sicherheitsbestand: 3 Stk.</text>
+          <!-- Target stock line -->
+          <line id="target-line" x1="35" y1="130" x2="555" y2="130" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <text id="target-label" x="38" y="127" font-size="7.5" fill="#EF4444" font-family="Inter,sans-serif">Zielbestand: 8 Stk.</text>
+        </svg>
+
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-bar" style="background:#6366F1;"></div> Bestätigte WOs (SAP)</div>
+          <div class="leg-item"><div class="leg-bar" style="background:#F97316;opacity:0.8;"></div> Nettoprognose (nach Consumption)</div>
+          <div class="leg-item"><div class="leg-bar" style="background:#EF4444;opacity:0.65;"></div> Verbrauch</div>
+          <div class="leg-item"><div class="leg-line" style="background:#10B981;"></div> Proj. Bestand</div>
+          <div class="leg-item"><div class="leg-dash" style="border-color:#EF4444;"></div> Ziel / Sicherheit</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <div class="overlay-sidebar">
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Material Nr.</div>
+        <div class="sidebar-field-value" id="sb-matno">10-123456-00</div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Materialbezeichnung</div>
+        <div class="sidebar-field-value" id="sb-matname">Bogenlager ICE BR 407</div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Werk</div>
+        <div class="sidebar-field-value" id="sb-plant">Berlin HBF (WK-1001)</div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Materialgruppe</div>
+        <div class="sidebar-field-value">Fahrwerk / Lager</div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Bestandsklasse</div>
+        <div class="sidebar-field-value" id="sb-class"><span class="badge badge-under">Unterbestand</span></div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">MRP-Typ</div>
+        <div class="sidebar-field-value">VB (Meldebestand)</div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Basismengeneinheit</div>
+        <div class="sidebar-field-value">Stk.</div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">ABC/XYZ Klasse</div>
+        <div class="sidebar-field-value" id="sb-abc"><span class="badge badge-cx">CX</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action bar -->
+  <div class="overlay-action-bar">
+    <div class="action-note">
+      <svg width="14" height="14" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Empfehlung: Sicherheitsbestand auf <strong style="margin: 0 4px;" id="ov-action-rec">8 Stk.</strong> setzen &nbsp;·&nbsp; Methode: Croston/TSB
+    </div>
+    <div class="action-btns">
+      <button class="btn" onclick="closeOverlay()">Schließen</button>
+      <button class="btn disabled" title="SAP-Anbindung in dieser Demo deaktiviert">In SAP schreiben</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const materials = [
+  { matno: '10-123456-00', name: 'Bogenlager ICE BR 407', plant: 'Berlin HBF (WK-1001)', cls: 'under', abc: 'CX', stock: '€ 9.600', rec: '8 Stk.', pot: '€ 12.400', freq: '0,4 / Monat', days: '47 Tage', qty: '3 Stk.', actionRec: '8 Stk.' },
+  { matno: '10-234567-00', name: 'Radsatzlager BR 407', plant: 'Hamburg-Langenfelde (WK-1004)', cls: 'under', abc: 'CX', stock: '€ 4.800', rec: '5 Stk.', pot: '€ 19.200', freq: '0,3 / Monat', days: '22 Tage', qty: '1 Stk.', actionRec: '5 Stk.' },
+  { matno: '10-345678-00', name: 'Stromabnehmer BR 406', plant: 'München HBF (WK-1007)', cls: 'under', abc: 'AZ', stock: '€ 7.200', rec: '6 Stk.', pot: '€ 14.800', freq: '0,5 / Monat', days: '38 Tage', qty: '2 Stk.', actionRec: '6 Stk.' },
+  { matno: '10-456789-00', name: 'Bremsbelag BR 403', plant: 'Frankfurt-Griesheim (WK-1002)', cls: 'excess', abc: 'CX', stock: '€ 33.000', rec: '12 Stk.', pot: '€ 8.900', freq: '1,2 / Monat', days: '365 Tage', qty: '22 Stk.', actionRec: '12 Stk.' },
+  { matno: '10-567890-00', name: 'Hydraulikschlauch BR 403', plant: 'Berlin HBF (WK-1001)', cls: 'excess', abc: 'CX', stock: '€ 18.750', rec: '8 Stk.', pot: '€ 6.100', freq: '0,9 / Monat', days: '365 Tage', qty: '15 Stk.', actionRec: '8 Stk.' },
+  { matno: '10-678901-00', name: 'Getriebeöl BR 407 (5L)', plant: 'Köln Betriebswerk (WK-1005)', cls: 'ok', abc: 'AZ', stock: '€ 2.400', rec: '8 Stk.', pot: '€ 0', freq: '0,8 / Monat', days: '365 Tage', qty: '8 Stk.', actionRec: '8 Stk.' },
+];
+
+const classBadge = { under: '<span class="badge badge-under">Unterbestand</span>', excess: '<span class="badge badge-excess">Überbestand</span>', ok: '<span class="badge badge-ok">Optimal</span>' };
+const abcBadge = { CX: '<span class="badge badge-cx">CX</span>', AZ: '<span class="badge badge-abc">AZ</span>' };
+
+function openOverlay(idx) {
+  const m = materials[idx];
+  document.querySelectorAll('tbody tr').forEach((r,i) => r.classList.toggle('selected', i===idx));
+  document.getElementById('ov-matno').textContent = m.matno;
+  document.getElementById('ov-stock').textContent = m.stock;
+  document.getElementById('ov-rec').textContent = m.rec;
+  document.getElementById('ov-class').innerHTML = classBadge[m.cls];
+  document.getElementById('ov-pot').textContent = m.pot;
+  document.getElementById('ov-freq').textContent = m.freq;
+  document.getElementById('ov-days').textContent = m.days;
+  document.getElementById('ov-qty').textContent = m.qty;
+  document.getElementById('ov-action-rec').textContent = m.actionRec;
+  document.getElementById('sb-matno').textContent = m.matno;
+  document.getElementById('sb-matname').textContent = m.name;
+  document.getElementById('sb-plant').textContent = m.plant;
+  document.getElementById('sb-class').innerHTML = classBadge[m.cls];
+  document.getElementById('sb-abc').innerHTML = abcBadge[m.abc];
+  // Reset to tab 1, aktuell scenario
+  switchOvTab(1);
+  setScenario('geplant', document.querySelector('.seg-btn'));
+  document.getElementById('backdrop').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeOverlay() {
+  document.getElementById('backdrop').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+  document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('selected'));
+}
+
+function switchOvTab(n) {
+  document.querySelectorAll('.overlay-tab').forEach((t,i) => t.classList.toggle('active', i+1===n));
+  document.querySelectorAll('.overlay-tab-pane').forEach((p,i) => p.classList.toggle('active', i+1===n));
+}
+
+function setScenario(s, btn) {
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const isKomb = s === 'kombiniert';
+  // Projection lines
+  document.getElementById('inv-line-aktuell').setAttribute('display', isKomb ? 'none' : '');
+  document.getElementById('inv-dots-aktuell').setAttribute('display', isKomb ? 'none' : '');
+  document.getElementById('inv-line-opt').setAttribute('display', isKomb ? '' : 'none');
+  document.getElementById('inv-dots-opt').setAttribute('display', isKomb ? '' : 'none');
+  // Net forecast bars — only in Kombiniert
+  document.getElementById('net-forecast-bars').setAttribute('display', isKomb ? '' : 'none');
+  document.getElementById('net-forecast-labels').setAttribute('display', isKomb ? '' : 'none');
+  document.getElementById('consumption-kpi').style.display = isKomb ? '' : 'none';
+  // Safety / target lines
+  document.getElementById('safety-label').textContent = isKomb ? 'Sicherheitsbestand: 8 Stk. (Croston)' : 'Sicherheitsbestand: 3 Stk. (SAP)';
+  document.getElementById('safety-line').setAttribute('y1', isKomb ? '120' : '163');
+  document.getElementById('safety-line').setAttribute('y2', isKomb ? '120' : '163');
+  document.getElementById('target-label').textContent = isKomb ? 'Zielbestand: 12 Stk.' : 'Zielbestand: 8 Stk.';
+  document.getElementById('target-line').setAttribute('y1', isKomb ? '95' : '130');
+  document.getElementById('target-line').setAttribute('y2', isKomb ? '95' : '130');
+  document.getElementById('ov-days').textContent = isKomb ? '365+ Tage' : '47 Tage';
+}
+</script>
+</body>
+</html>

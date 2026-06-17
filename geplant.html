@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bestandsprojektion — Geplant</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root {
+    --blue: #4F6EF5; --green: #10B981; --orange: #F97316;
+    --red: #EF4444; --text: #111827; --muted: #6B7280;
+    --muted2: #9CA3AF; --border: #E5E7EB; --bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px 24px; }
+
+  .kpi-row { display: flex; gap: 40px; margin-bottom: 20px; }
+  .kpi-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+  .kpi-value { font-size: 28px; font-weight: 600; color: var(--text); }
+  .kpi-unit { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  .info-box {
+    background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 8px;
+    padding: 10px 14px; font-size: 12px; color: #92400E;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+
+  .chart-legend { display: flex; align-items: center; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .leg-bar { width: 12px; height: 10px; border-radius: 2px; }
+  .leg-line { width: 18px; height: 2px; border-radius: 1px; }
+  .leg-dash { width: 18px; height: 0; border-top: 2px dashed; }
+</style>
+</head>
+<body>
+
+<div class="kpi-row">
+  <div>
+    <div class="kpi-label">Tage bis Fehlmenge <span style="cursor:help;color:var(--muted2);">ⓘ</span></div>
+    <div class="kpi-value">47 Tage</div>
+    <div class="kpi-unit">Bogenlager ICE BR 407 | Berlin-Rummelsburg</div>
+  </div>
+  <div>
+    <div class="kpi-label">Bestand (Menge)</div>
+    <div class="kpi-value">3 Stk.</div>
+    <div class="kpi-unit">Aktueller Lagerbestand</div>
+  </div>
+</div>
+
+<div class="info-box">
+  ⚠ Nur bestätigte SAP-Wartungsaufträge (WOs) — keine Prognose. Fehlmenge erwartet: Jan 2027.
+</div>
+
+<svg viewBox="0 0 560 210" style="width:100%;height:210px;display:block;" xmlns="http://www.w3.org/2000/svg">
+  <rect width="560" height="210" fill="white"/>
+  <!-- Grid -->
+  <line x1="35" y1="20" x2="555" y2="20" stroke="#F3F4F6" stroke-width="1"/>
+  <line x1="35" y1="60" x2="555" y2="60" stroke="#F3F4F6" stroke-width="1"/>
+  <line x1="35" y1="100" x2="555" y2="100" stroke="#F3F4F6" stroke-width="1"/>
+  <line x1="35" y1="140" x2="555" y2="140" stroke="#F3F4F6" stroke-width="1"/>
+  <line x1="35" y1="170" x2="555" y2="170" stroke="#E5E7EB" stroke-width="1"/>
+  <!-- Y labels -->
+  <text x="4" y="23" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">16</text>
+  <text x="4" y="63" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">12</text>
+  <text x="4" y="103" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">8</text>
+  <text x="4" y="143" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">4</text>
+  <text x="4" y="173" font-size="8" fill="#9CA3AF" font-family="Inter,sans-serif">0</text>
+  <!-- X labels -->
+  <text x="60" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Jul 26</text>
+  <text x="170" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Aug 26</text>
+  <text x="280" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Sep 26</text>
+  <text x="390" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Okt 26</text>
+  <text x="500" y="198" font-size="7.5" fill="#9CA3AF" font-family="Inter,sans-serif" text-anchor="middle">Nov 26</text>
+
+  <!-- Firm WO bars (blue) -->
+  <rect x="55" y="100" width="16" height="70" rx="2" fill="#6366F1" opacity="0.8"/>
+  <rect x="275" y="120" width="16" height="50" rx="2" fill="#6366F1" opacity="0.8"/>
+  <rect x="385" y="110" width="16" height="60" rx="2" fill="#6366F1" opacity="0.8"/>
+  <text x="63" y="97" font-size="7" fill="#6366F1" font-family="Inter,sans-serif" text-anchor="middle">WO</text>
+  <text x="283" y="117" font-size="7" fill="#6366F1" font-family="Inter,sans-serif" text-anchor="middle">WO</text>
+  <text x="393" y="107" font-size="7" fill="#6366F1" font-family="Inter,sans-serif" text-anchor="middle">WO</text>
+
+  <!-- Consumption bars (red) -->
+  <rect x="100" y="155" width="14" height="15" rx="2" fill="#EF4444" opacity="0.65"/>
+  <rect x="155" y="158" width="14" height="12" rx="2" fill="#EF4444" opacity="0.65"/>
+  <rect x="210" y="162" width="14" height="8" rx="2" fill="#EF4444" opacity="0.65"/>
+  <rect x="320" y="157" width="14" height="13" rx="2" fill="#EF4444" opacity="0.65"/>
+  <rect x="430" y="160" width="14" height="10" rx="2" fill="#EF4444" opacity="0.65"/>
+  <rect x="475" y="163" width="14" height="7" rx="2" fill="#EF4444" opacity="0.65"/>
+
+  <!-- Projected inventory — Geplant: drops to stockout -->
+  <polyline points="45,150 75,130 110,148 165,158 215,163 250,161 285,148 310,148 340,158 360,158 395,145 420,145 450,150 480,155 510,162 540,168 555,174" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linejoin="round"/>
+  <circle cx="45" cy="150" r="3" fill="#10B981"/>
+  <circle cx="110" cy="148" r="3" fill="#10B981"/>
+  <circle cx="215" cy="163" r="3" fill="#10B981"/>
+  <circle cx="285" cy="148" r="3" fill="#10B981"/>
+  <circle cx="395" cy="145" r="3" fill="#10B981"/>
+  <circle cx="450" cy="150" r="3" fill="#10B981"/>
+  <circle cx="510" cy="162" r="3" fill="#10B981"/>
+  <circle cx="555" cy="174" r="4" fill="#EF4444"/>
+
+  <!-- Safety stock line (dashed red) -->
+  <line x1="35" y1="163" x2="555" y2="163" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="38" y="160" font-size="7.5" fill="#EF4444" font-family="Inter,sans-serif">Sicherheitsbestand: 3 Stk. (SAP)</text>
+
+  <!-- Target stock line (dashed red, higher) -->
+  <line x1="35" y1="130" x2="555" y2="130" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.5"/>
+  <text x="38" y="127" font-size="7.5" fill="#EF4444" font-family="Inter,sans-serif" opacity="0.8">Zielbestand: 8 Stk.</text>
+</svg>
+
+<div class="chart-legend">
+  <div class="leg-item"><div class="leg-bar" style="background:#6366F1;opacity:0.8;"></div> Bestätigte WOs (SAP)</div>
+  <div class="leg-item"><div class="leg-bar" style="background:#EF4444;opacity:0.65;"></div> Verbrauch</div>
+  <div class="leg-item"><div class="leg-line" style="background:#10B981;"></div> Proj. Bestand</div>
+  <div class="leg-item"><div class="leg-dash" style="border-color:#EF4444;"></div> Ziel / Sicherheit</div>
+</div>
+
+</body>
+</html>

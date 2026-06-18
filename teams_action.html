@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teams Action — Radsatzlager BR 407</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* Teams shell */
+  .teams-shell {
+    width: 420px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  }
+
+  /* Teams top bar */
+  .teams-topbar {
+    background: #6264A7;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .teams-logo {
+    width: 24px; height: 24px;
+    background: white;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #6264A7;
+  }
+  .teams-title { color: white; font-size: 14px; font-weight: 600; }
+
+  /* Chat area */
+  .chat-area { padding: 16px; background: #fafafa; }
+
+  /* Message bubble */
+  .message {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* Alert header */
+  .alert-header {
+    background: #FEF2F2;
+    border-bottom: 2px solid #EC0016;
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .alert-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+  }
+  .alert-subtitle { font-size: 12px; color: #6B7280; }
+  .alert-badge {
+    margin-left: auto;
+    background: #EC0016;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Message body */
+  .message-body { padding: 14px 16px; }
+  .message-text {
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .message-text strong { color: #111827; }
+
+  /* Stock summary strip */
+  .stock-strip {
+    display: flex;
+    gap: 0;
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .stock-item {
+    flex: 1;
+    padding: 8px 12px;
+    border-right: 1px solid #E5E7EB;
+    text-align: center;
+  }
+  .stock-item:last-child { border-right: none; }
+  .stock-item-label { font-size: 10px; color: #9CA3AF; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .stock-item-value { font-size: 16px; font-weight: 700; color: #111827; }
+  .stock-item-value.red { color: #EC0016; }
+  .stock-item-value.green { color: #10B981; }
+
+  /* Options table */
+  .options-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12px; }
+  .options-table th {
+    text-align: left;
+    padding: 6px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9CA3AF;
+    border-bottom: 1px solid #E5E7EB;
+    background: #F9FAFB;
+  }
+  .options-table td {
+    padding: 8px 8px;
+    border-bottom: 1px solid #F3F4F6;
+    color: #374151;
+    vertical-align: middle;
+  }
+  .options-table tr:last-child td { border-bottom: none; }
+  .option-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+  .badge-fast { background: #DCFCE7; color: #166534; }
+  .badge-stock { background: #EFF6FF; color: #1D4ED8; }
+  .lead-time { font-weight: 600; }
+  .lead-time.fast { color: #10B981; }
+  .lead-time.slow { color: #F59E0B; }
+
+  /* Radio options */
+  .radio-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .radio-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .radio-option:hover { border-color: #6264A7; background: #F8F7FF; }
+  .radio-option.selected { border-color: #6264A7; background: #F0EFFF; }
+  .radio-dot {
+    width: 16px; height: 16px;
+    border: 2px solid #D1D5DB;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .radio-option.selected .radio-dot { border-color: #6264A7; }
+  .radio-option.selected .radio-dot::after {
+    content: '';
+    width: 8px; height: 8px;
+    background: #6264A7;
+    border-radius: 50%;
+  }
+  .radio-label { font-size: 13px; font-weight: 500; color: #111827; }
+  .radio-sub { font-size: 11px; color: #6B7280; margin-top: 2px; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 8px; }
+  .btn-confirm {
+    flex: 1;
+    padding: 9px 0;
+    background: #6264A7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-confirm:hover { background: #4f51a3; }
+  .btn-skip {
+    padding: 9px 16px;
+    background: white;
+    color: #374151;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* Input bar */
+  .input-bar {
+    padding: 10px 16px;
+    border-top: 1px solid #E5E7EB;
+    display: flex; align-items: center; gap: 8px;
+    background: white;
+  }
+  .input-field {
+    flex: 1;
+    padding: 7px 12px;
+    border: 1px solid #E5E7EB;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #9CA3AF;
+    font-family: inherit;
+    background: #F9FAFB;
+  }
+  .send-btn {
+    width: 32px; height: 32px;
+    background: #6264A7;
+    border: none; border-radius: 50%;
+    color: white; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="teams-shell">
+
+  <!-- Teams topbar -->
+  <div class="teams-topbar">
+    <div class="teams-logo">T</div>
+    <span class="teams-title">Purchase Order Agent</span>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-area">
+    <div class="message">
+
+      <!-- Alert header -->
+      <div class="alert-header">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <div class="alert-title">Radsatzlager BR 407 | 10883214 — Shortage Alert</div>
+          <div class="alert-subtitle">Berlin-Rummelsburg (BRGB) · Detected by Celonis</div>
+        </div>
+        <span class="alert-badge">UNDER STOCK</span>
+      </div>
+
+      <!-- Body -->
+      <div class="message-body">
+
+        <p class="message-text">
+          Stock at <strong>Berlin-Rummelsburg</strong> has reached the safety buffer.
+          Celonis has identified two resolution options based on current network inventory.
+          Please select how to proceed:
+        </p>
+
+        <!-- Stock summary -->
+        <div class="stock-strip">
+          <div class="stock-item">
+            <div class="stock-item-label">Current Stock</div>
+            <div class="stock-item-value red">3 pcs.</div>
+          </div>
+          <div class="stock-item">
+            <div class="stock-item-label">Safety Target</div>
+            <div class="stock-item-value">8 pcs.</div>
+          </div>
+          <div class="stock-item">
+            <div class="stock-item-label">Days until Stockout</div>
+            <div class="stock-item-value red">47 days</div>
+          </div>
+        </div>
+
+        <!-- Options table -->
+        <table class="options-table">
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Action</th>
+              <th>Qty</th>
+              <th>Cost</th>
+              <th>Lead Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="option-badge badge-fast">Fastest</span></td>
+              <td>Inter-Depot Transfer<br><span style="color:#9CA3AF;font-size:11px;">Frankfurt-Griesheim | FFG</span></td>
+              <td>+6 pcs.</td>
+              <td>€ 0</td>
+              <td class="lead-time fast">0.5 days</td>
+            </tr>
+            <tr>
+              <td><span class="option-badge badge-stock">Restock</span></td>
+              <td>Expedited Purchase Order<br><span style="color:#9CA3AF;font-size:11px;">Schaeffler | TAROL</span></td>
+              <td>+8 pcs.</td>
+              <td>€ 12,400</td>
+              <td class="lead-time slow">14 days</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Radio options -->
+        <div class="radio-group">
+          <div class="radio-option selected" onclick="select(this)">
+            <div class="radio-dot"></div>
+            <div>
+              <div class="radio-label">Transfer from Frankfurt-Griesheim | FFG</div>
+              <div class="radio-sub">+6 pcs. · 0.5 days · € 0 · Excess stock available at FFG</div>
+            </div>
+          </div>
+          <div class="radio-option" onclick="select(this)">
+            <div class="radio-dot"></div>
+            <div>
+              <div class="radio-label">Expedited PO from Schaeffler | TAROL</div>
+              <div class="radio-sub">+8 pcs. · 14 days · € 12,400 · Restores to recommended level</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="btn-row">
+          <button class="btn-confirm">Confirm Selection</button>
+          <button class="btn-skip">Skip</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Input bar -->
+  <div class="input-bar">
+    <input class="input-field" placeholder="Type a message" readonly>
+    <button class="send-btn">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+    </button>
+  </div>
+
+</div>
+
+<script>
+function select(el) {
+  document.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+</script>
+
+</body>
+</html>
